@@ -1,7 +1,7 @@
 package main
 
 import (
-    "../simpleaes"
+    "github.com/tadzik/simpleaes"
     "fmt"
 )
 

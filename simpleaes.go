@@ -4,6 +4,7 @@ package simpleaes
 import (
     "crypto/aes"
     "crypto/cipher"
+    "io"
 )
 
 type Aes struct {
@@ -53,6 +54,28 @@ func (me *Aes) Encrypt(src []byte) []byte {
     return dst
 }
 
+// Encrypt blocks from reader, write results into writer
+func (me *Aes) EncryptStream(reader io.Reader, writer io.Writer) error {
+    for {
+        buf := make([]byte, me.enc.BlockSize())
+        _, err := io.ReadFull(reader, buf)
+        if err != nil {
+            if err == io.EOF {
+                break
+            } else if err == io.ErrUnexpectedEOF {
+                // nothing
+            } else {
+                return err
+            }
+        }
+        me.enc.CryptBlocks(buf, buf)
+        if _, err = writer.Write(buf); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
 // Decrypt a slice of bytes, producing a new, freshly allocated slice
 //
 // Source will be padded with null bytes if necessary
@@ -63,4 +86,24 @@ func (me *Aes) Decrypt(src []byte) []byte {
     dst := make([]byte, len(src))
     me.dec.CryptBlocks(dst, src)
     return dst
+}
+
+// Decrypt blocks from reader, write results into writer
+func (me *Aes) DecryptStream(reader io.Reader, writer io.Writer) error {
+    buf := make([]byte, me.dec.BlockSize())
+    for {
+        _, err := io.ReadFull(reader, buf)
+        if err != nil {
+            if err == io.EOF {
+                break
+            } else {
+                return err
+            }
+        }
+        me.dec.CryptBlocks(buf, buf)
+        if _, err = writer.Write(buf); err != nil {
+            return err
+        }
+    }
+    return nil
 }

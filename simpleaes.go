@@ -18,10 +18,16 @@ type Aes struct {
 //
 // The key will be padded to the given size if needed.
 // An IV is created as a series of NULL bytes of necessary length
-func New(size int, key string) (*Aes, error) {
+// when there is no iv string passed as 3rd value to function.
+func New(size int, key string, more ...string) (*Aes, error) {
     padded := make([]byte, size)
     copy(padded, []byte(key))
-    iv := make([]byte, size)
+    var iv []byte
+    if len(more) > 0 {
+        iv = []byte(more[0])
+    } else {
+        iv = make([]byte, size)
+    }
     aes, err := aes.NewCipher(padded)
     if err != nil {
         return nil, err
@@ -46,7 +52,7 @@ func (me *Aes) padSlice(src []byte) []byte {
 //
 // Source will be padded with null bytes if necessary
 func (me *Aes) Encrypt(src []byte) []byte {
-    if (len(src) % me.enc.BlockSize() != 0) {
+    if len(src)%me.enc.BlockSize() != 0 {
         src = me.padSlice(src)
     }
     dst := make([]byte, len(src))
@@ -80,7 +86,7 @@ func (me *Aes) EncryptStream(reader io.Reader, writer io.Writer) error {
 //
 // Source will be padded with null bytes if necessary
 func (me *Aes) Decrypt(src []byte) []byte {
-    if (len(src) % me.dec.BlockSize() != 0) {
+    if len(src)%me.dec.BlockSize() != 0 {
         src = me.padSlice(src)
     }
     dst := make([]byte, len(src))
